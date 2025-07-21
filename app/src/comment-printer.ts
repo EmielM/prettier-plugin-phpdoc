@@ -1,4 +1,4 @@
-import { CommentNodeType, ParsedCommentNode } from './comment-parser';
+import { CommentNodeType, type ParsedCommentNode } from './comment-parser';
 import { getNextWrapLevel, printType, WrapLevel } from './type-printer';
 import { trimSpacesRight } from './util';
 import { PrettierOptions } from './options';

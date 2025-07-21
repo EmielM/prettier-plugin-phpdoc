@@ -1,5 +1,5 @@
-import { Program } from 'php-parser';
-import { Parser } from 'prettier';
+import type { Program } from 'php-parser';
+import type { Parser } from 'prettier';
 import { parseComment } from './comment-parser';
 import { printComment } from './comment-printer';
 import { PrettierOptions } from './options';

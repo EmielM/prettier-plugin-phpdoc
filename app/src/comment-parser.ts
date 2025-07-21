@@ -1,6 +1,6 @@
 import { trimSpacesleft, trimSpacesRight } from './util';
 import { ParsedTypeNode, parseType } from './type-parser';
-import { Comment } from 'php-parser';
+import type { Comment } from 'php-parser';
 
 const TAGS_WITH_TYPES = [
 	'method',

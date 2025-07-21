@@ -1,4 +1,4 @@
-import { Comment } from 'php-parser';
+import type { Comment } from 'php-parser';
 
 export type ParsedTypeNode =
 	| MaybeNode

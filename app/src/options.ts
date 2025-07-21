@@ -1,4 +1,4 @@
-import { ParserOptions, SupportOption } from 'prettier';
+import type { ParserOptions, SupportOption } from 'prettier';
 
 interface PluginOptions {
 	wrapText: boolean;
