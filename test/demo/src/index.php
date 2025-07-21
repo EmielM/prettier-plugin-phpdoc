@@ -9,6 +9,8 @@ class DemoFile {
 	 */
 	public static $someVar = [];
 
+	public const SOME_CLASS_CONST_WITH_TYPE = 30;
+
 	/**
 	 * @param array{
 	 *  	title: string,
