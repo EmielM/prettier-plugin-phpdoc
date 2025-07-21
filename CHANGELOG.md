@@ -1,5 +1,9 @@
 ## Changelog
 
+### 1.1.0
+
+-   Actually use peer version of `@prettier/plugin-php` instead of bundling it
+
 ### 1.0.5
 
 -   Don't format non-PHPDoc comments (those that don't start with `/**`)
