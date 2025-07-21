@@ -29,8 +29,8 @@
 	"license": "MIT",
 	"scripts": {
 		"prepublish": "bun prepack",
-		"bundle": "esbuild --bundle --platform=node --external:typescript --external:prettier --outfile=dist/index.js app/index.ts --minify",
-		"bundle:dev": "esbuild --bundle --platform=node --external:typescript --external:prettier --outfile=dist/index.js app/index.ts",
+		"bundle": "esbuild --bundle --platform=node --external:typescript --external:prettier --external:@prettier/plugin-php --outfile=dist/index.js app/index.ts --minify",
+		"bundle:dev": "esbuild --bundle --platform=node --external:typescript --external:prettier --external:@prettier/plugin-php --outfile=dist/index.js app/index.ts",
 		"prepack": "bun format && tsc && bun bundle",
 		"format": "prettier --write app"
 	}
