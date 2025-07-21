@@ -64,14 +64,14 @@ export const getParsers = () => ({
 	get php() {
 		const pluginPhp = (() => {
 			try {
-				return require('@prettier/plugin-php') as {
+				return require('@prettier/plugin-php/standalone') as {
 					parsers: {
 						php: Parser<Program>;
 					};
 				};
 			} catch (e) {
 				throw new Error(
-					'PHP parser not found, please install @prettier/plugin-php'
+					`PHP parser not found, please install @prettier/plugin-php. Error: ${(e as Error).message}`
 				);
 			}
 		})();
