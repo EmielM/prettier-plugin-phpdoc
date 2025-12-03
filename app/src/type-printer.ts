@@ -176,6 +176,11 @@ class TypePrinter {
 			this.printType(node.class);
 			this._print('::');
 			this.printType(node.member);
+		} else if (node.kind === TypeKind.ArrayIndex) {
+			this.printType(node.node);
+			this._print('[');
+			this.printType(node.index);
+			this._print(']');
 		} else if (node.kind === TypeKind.TupleDict) {
 			this._print('array{');
 			if (node.entries.length) {

@@ -79,4 +79,12 @@ class DemoFile {
 		// Inline comment
 		return [];
 	}
+
+	const C = [
+		'x' => ['a' => true],
+	];
+
+	/** @param key-of<self::C[string]> $key */
+	public function phpstanSpecific(array $x): void {
+	}
 }
