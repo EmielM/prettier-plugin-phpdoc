@@ -5,6 +5,7 @@ export type ParsedTypeNode =
 	| SimpleValueNode
 	| WithGenericsNode
 	| StaticAccessNode
+	| ArrayIndexNode
 	| TupleDictNode
 	| RecordNode
 	| ArrayListNode
@@ -22,6 +23,7 @@ export enum TypeKind {
 	SimpleValue = 'simple-value',
 	WithGenerics = 'with-generics',
 	StaticAccess = 'static-access',
+	ArrayIndex = 'array-index',
 	TupleDict = 'tuple-dict',
 	Record = 'record',
 	ArrayList = 'arrayList',
@@ -55,6 +57,12 @@ interface StaticAccessNode {
 	kind: TypeKind.StaticAccess;
 	class: ParsedTypeNode;
 	member: ParsedTypeNode;
+}
+
+interface ArrayIndexNode {
+	kind: TypeKind.ArrayIndex;
+	node: ParsedTypeNode;
+	index: ParsedTypeNode;
 }
 
 export interface TupleDictEntryWithKey {
@@ -351,6 +359,15 @@ class TypeParser {
 					class: node,
 					member: this.parseType([...where, 'static-access'], false),
 				};
+			}
+			if (this._maybe('[')) {
+				// self::CONSTANT[string]
+				node = {
+					kind: TypeKind.ArrayIndex,
+					node: node,
+					index: this.parseType([...where, 'array-index'], false),
+				}
+				this._expect([...where, 'array-index'], ']');
 			}
 		} else if (this._maybe('(')) {
 			const type = this.parseType([...where, 'parentheses']);
