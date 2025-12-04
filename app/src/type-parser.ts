@@ -5,7 +5,6 @@ export type ParsedTypeNode =
 	| SimpleValueNode
 	| WithGenericsNode
 	| StaticAccessNode
-	| ArrayIndexNode
 	| TupleDictNode
 	| RecordNode
 	| ArrayListNode
@@ -23,7 +22,6 @@ export enum TypeKind {
 	SimpleValue = 'simple-value',
 	WithGenerics = 'with-generics',
 	StaticAccess = 'static-access',
-	ArrayIndex = 'array-index',
 	TupleDict = 'tuple-dict',
 	Record = 'record',
 	ArrayList = 'arrayList',
@@ -59,12 +57,6 @@ interface StaticAccessNode {
 	member: ParsedTypeNode;
 }
 
-interface ArrayIndexNode {
-	kind: TypeKind.ArrayIndex;
-	node: ParsedTypeNode;
-	index: ParsedTypeNode;
-}
-
 export interface TupleDictEntryWithKey {
 	key: ParsedTypeNode;
 	optional: boolean;
@@ -96,6 +88,7 @@ interface ArrayListNode {
 interface ArraySquareBracketNode {
 	kind: TypeKind.ArraySquareBracket;
 	type: ParsedTypeNode;
+	indexType: null | ParsedTypeNode;
 }
 
 interface UnionNode {
@@ -360,15 +353,6 @@ class TypeParser {
 					member: this.parseType([...where, 'static-access'], false),
 				};
 			}
-			if (this._maybe('[')) {
-				// self::CONSTANT[string]
-				node = {
-					kind: TypeKind.ArrayIndex,
-					node: node,
-					index: this.parseType([...where, 'array-index'], false),
-				};
-				this._expect([...where, 'array-index'], ']');
-			}
 		} else if (this._maybe('(')) {
 			const type = this.parseType([...where, 'parentheses']);
 			this._expect([...where, 'parentheses'], ')');
@@ -418,11 +402,17 @@ class TypeParser {
 			} satisfies CallableNode;
 		}
 
-		// Handle trailing arrays
-		while (this._maybe('[]')) {
+		// Handle trailing arrays or array index self::C[string]
+		while (this._maybe('[')) {
+			let indexNode: null | ParsedTypeNode = null;
+			if (!this._maybe(']')) {
+				indexNode = this.parseType([...where, 'array-index']);
+				this._expect([...where, 'array-index'], ']');
+			}
 			node = {
 				kind: TypeKind.ArraySquareBracket,
 				type: node!,
+				indexType: indexNode,
 			};
 		}
 

@@ -15,6 +15,7 @@ class DemoFile {
 	 * @param array{
 	 *  	title: string,
 	 *  	description: string,
+	 *  	items: string[],
 	 *  	body: string | bool,
 	 * } $param
 	 */
