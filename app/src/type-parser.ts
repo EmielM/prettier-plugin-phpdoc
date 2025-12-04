@@ -366,7 +366,7 @@ class TypeParser {
 					kind: TypeKind.ArrayIndex,
 					node: node,
 					index: this.parseType([...where, 'array-index'], false),
-				}
+				};
 				this._expect([...where, 'array-index'], ']');
 			}
 		} else if (this._maybe('(')) {
