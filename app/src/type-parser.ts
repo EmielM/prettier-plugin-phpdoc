@@ -141,34 +141,39 @@ class TypeParser {
 	public pos: number = 0;
 	private _lastResult: string | null = null;
 
-	private _maybe(...accepts: (string | RegExp)[]): string | null {
-		while (
-			this.pos < this._text.length &&
-			[' ', '\t', '\n'].includes(this._text[this.pos])
-		) {
-			this.pos++;
+	public maybe(
+		accepts: (string | RegExp)[],
+		whitespace: boolean = true
+	): string | null {
+		let pos = this.pos;
+		if (whitespace) {
+			while (
+				pos < this._text.length &&
+				[' ', '\t', '\n'].includes(this._text[pos])
+			) {
+				pos++;
+			}
 		}
 
 		for (const accept of accepts) {
 			if (
 				typeof accept === 'string' &&
-				accept.length > this._text.length - this.pos
+				accept.length > this._text.length - pos
 			) {
 				continue;
 			}
 			if (typeof accept === 'string') {
-				if (
-					this._text.slice(this.pos, this.pos + accept.length) ===
-					accept
-				) {
-					this.pos += accept.length;
+				if (this._text.slice(pos, pos + accept.length) === accept) {
+					pos += accept.length;
+					this.pos = pos;
 					this._lastResult = accept;
 					return accept;
 				}
 			} else {
-				const match = this._text.slice(this.pos).match(accept);
+				const match = this._text.slice(pos).match(accept);
 				if (match) {
-					this.pos += match[0].length;
+					pos += match[0].length;
+					this.pos = pos;
 					this._lastResult = match[0];
 					return match[0];
 				}
@@ -177,18 +182,18 @@ class TypeParser {
 		return null;
 	}
 
-	private _peek(...accepts: (string | RegExp)[]): string | null {
+	private _peek(accepts: (string | RegExp)[]): string | null {
 		const pos = this.pos;
-		const result = this._maybe(...accepts);
+		const result = this.maybe(accepts);
 		this.pos = pos;
 		return result;
 	}
 
 	private _expect(
-		where: string[],
-		...accepts: (string | RegExp)[]
+		accepts: (string | RegExp)[],
+		where: string[]
 	): string | never {
-		const result = this._maybe(...accepts);
+		const result = this.maybe(accepts);
 		if (result === null) {
 			const what = accepts.join(' or ');
 			throw new Error(
@@ -201,18 +206,18 @@ class TypeParser {
 	}
 
 	private _maybeGeneric(where: string[]): ParsedTypeNode[] | null {
-		if (!this._maybe('<')) {
+		if (!this.maybe(['<'])) {
 			return null;
 		}
 
 		const nodes: ParsedTypeNode[] = [];
 		do {
-			if (this._maybe('>')) {
+			if (this.maybe(['>'])) {
 				// Trailing comma...
 				return nodes;
 			}
 			const node = this.parseType([...where, 'generic']);
-			if (node.kind === TypeKind.SimpleValue && !this._peek(',', '>')) {
+			if (node.kind === TypeKind.SimpleValue && !this._peek([',', '>'])) {
 				// This can be a covariant or other modifier
 				nodes.push({
 					kind: TypeKind.ModifierKeyword,
@@ -222,31 +227,31 @@ class TypeParser {
 			} else {
 				nodes.push(node);
 			}
-		} while (this._maybe(','));
-		this._expect(where, '>');
+		} while (this.maybe([',']));
+		this._expect(['>'], where);
 		return nodes;
 	}
 
 	parseType(where: string[], consumeUnion: boolean = true): ParsedTypeNode {
 		let node: ParsedTypeNode | null = null;
-		if (this._maybe('?')) {
+		if (this.maybe(['?'])) {
 			node = {
 				kind: TypeKind.Maybe,
 				type: this.parseType([...where, 'maybe']),
 			};
-		} else if (this._maybe(/^array-[\\a-zA-Z0-9\-\_]+/)) {
+		} else if (this.maybe([/^array-[\\a-zA-Z0-9\-\_]+/])) {
 			const lastResult = this._lastResult!;
 			node = { kind: TypeKind.SimpleValue, value: lastResult };
-		} else if (this._maybe('array')) {
-			if (this._maybe('{')) {
+		} else if (this.maybe(['array'])) {
+			if (this.maybe(['{'])) {
 				node = {
 					entries: [],
 					kind: TypeKind.TupleDict,
 				};
-				while (!this._maybe('}')) {
+				while (!this.maybe(['}'])) {
 					const subType = this.parseType([...where, 'array']);
-					const isOptional = !!this._maybe('?');
-					if (this._maybe(':')) {
+					const isOptional = !!this.maybe(['?']);
+					if (this.maybe([':'])) {
 						// array{key: value}
 						const value = this.parseType([...where, 'array-value']);
 						node.entries.push({
@@ -262,20 +267,20 @@ class TypeParser {
 						});
 					}
 
-					if (!this._maybe(',')) {
-						this._expect([...where, 'array'], '}');
+					if (!this.maybe([','])) {
+						this._expect(['}'], [...where, 'array']);
 						break;
 					}
 				}
-			} else if (this._maybe('<')) {
+			} else if (this.maybe(['<'])) {
 				const subType = this.parseType([...where, 'array-record']);
-				if (this._maybe(',', '>') === ',') {
+				if (this.maybe([',', '>']) === ',') {
 					// array<key, value>
 					const valueType = this.parseType([
 						...where,
 						'array-record-value',
 					]);
-					this._expect([...where, 'array-value'], '>');
+					this._expect(['>'], [...where, 'array-value']);
 					node = {
 						kind: TypeKind.Record,
 						key: subType,
@@ -296,22 +301,22 @@ class TypeParser {
 					kind: TypeKind.SimpleValue,
 				};
 			}
-		} else if (this._maybe('list')) {
-			if (this._maybe('<')) {
+		} else if (this.maybe(['list'])) {
+			if (this.maybe(['<'])) {
 				const subType = this.parseType([...where, 'list']);
 				node = {
 					kind: TypeKind.ArrayList,
 					type: subType,
 					name: 'list',
 				};
-				this._expect([...where, 'array'], '>');
+				this._expect(['>'], [...where, 'array']);
 			} else {
 				node = {
 					value: 'list',
 					kind: TypeKind.SimpleValue,
 				};
 			}
-		} else if (this._maybe('"', "'")) {
+		} else if (this.maybe(['"', "'"])) {
 			const quote = this._lastResult === '"' ? 'double' : 'single';
 
 			let value = '';
@@ -328,13 +333,13 @@ class TypeParser {
 				throw new Error('unterminated string');
 			}
 
-			this._expect([...where, 'string'], this._lastResult!);
+			this._expect([this._lastResult!], [...where, 'string']);
 			node = {
 				kind: TypeKind.StringLiteral,
 				value,
 				quote,
 			};
-		} else if (this._maybe(/^((&)?\$)?(-?)[\\a-zA-Z0-9\-\_]+/)) {
+		} else if (this.maybe([/^((&)?\$)?(-?)[\\a-zA-Z0-9\-\_]+/])) {
 			const lastResult = this._lastResult!;
 			node = { kind: TypeKind.SimpleValue, value: lastResult };
 			const generics = this._maybeGeneric([...where, 'primitive']);
@@ -346,21 +351,21 @@ class TypeParser {
 				};
 			}
 
-			if (this._maybe('::')) {
+			if (this.maybe(['::'])) {
 				node = {
 					kind: TypeKind.StaticAccess,
 					class: node,
 					member: this.parseType([...where, 'static-access'], false),
 				};
 			}
-		} else if (this._maybe('(')) {
+		} else if (this.maybe(['('])) {
 			const type = this.parseType([...where, 'parentheses']);
-			this._expect([...where, 'parentheses'], ')');
+			this._expect([')'], [...where, 'parentheses']);
 			node = {
 				kind: TypeKind.Parentheses,
 				type,
 			} satisfies ParenthesesNode;
-		} else if (this._maybe('...')) {
+		} else if (this.maybe(['...'])) {
 			node = {
 				kind: TypeKind.Spread,
 			};
@@ -370,11 +375,11 @@ class TypeParser {
 			);
 		}
 
-		if (this._maybe('(')) {
+		if (this.maybe(['('])) {
 			const parameters: CallableNode['parameters'] = [];
-			while (!this._maybe(')')) {
+			while (!this.maybe([')'])) {
 				const type = this.parseType([...where, 'parentheses']);
-				if (this._maybe(/^(&)?\$[a-zA-Z0-9]+/)) {
+				if (this.maybe([/^(&)?\$[a-zA-Z0-9]+/])) {
 					// This is a named parameter
 					parameters.push({
 						name: this._lastResult!,
@@ -386,13 +391,13 @@ class TypeParser {
 					});
 				}
 
-				if (!this._maybe(',')) {
-					this._expect([...where, 'parentheses'], ')');
+				if (!this.maybe([','])) {
+					this._expect([')'], [...where, 'parentheses']);
 					break;
 				}
 			}
 
-			this._expect([...where, 'parentheses'], ':');
+			this._expect([':'], [...where, 'parentheses']);
 			const returnType = this.parseType([...where, 'return-type']);
 			node = {
 				kind: TypeKind.Callable,
@@ -403,11 +408,11 @@ class TypeParser {
 		}
 
 		// Handle trailing arrays or array index self::C[string]
-		while (this._maybe('[')) {
+		while (this.maybe(['['], false)) {
 			let indexNode: null | ParsedTypeNode = null;
-			if (!this._maybe(']')) {
+			if (!this.maybe([']'])) {
 				indexNode = this.parseType([...where, 'array-index']);
-				this._expect([...where, 'array-index'], ']');
+				this._expect([']'], [...where, 'array-index']);
 			}
 			node = {
 				kind: TypeKind.ArraySquareBracket,
@@ -418,7 +423,7 @@ class TypeParser {
 
 		// Handle trailing union types
 		const unionNodes: ParsedTypeNode[] = [node];
-		while (consumeUnion && this._maybe('|')) {
+		while (consumeUnion && this.maybe(['|'])) {
 			unionNodes.push(this.parseType([...where, 'union'], false));
 		}
 
@@ -431,12 +436,12 @@ class TypeParser {
 			};
 		}
 
-		if (this._maybe('is') && where.length > 1) {
+		if (this.maybe(['is']) && where.length > 1) {
 			// This is a PHPStan conditional type
 			const is = this.parseType([...where, 'conditional:is']);
-			this._expect([...where, 'conditional'], '?');
+			this._expect(['?'], [...where, 'conditional']);
 			const trueType = this.parseType([...where, 'conditional:true']);
-			this._expect([...where, 'conditional'], ':');
+			this._expect([':'], [...where, 'conditional']);
 			const falseType = this.parseType([...where, 'conditional:false']);
 			node = {
 				kind: TypeKind.ConditionalType,
@@ -464,6 +469,10 @@ export function parseType(
 			? `Line:${comment.loc.start.line}`
 			: 'comment',
 	]);
+
+	// Consume whitespace
+	while (parser.maybe([' ', '\t', '\n'], false)) {}
+
 	return {
 		parsedType,
 		rest: text.slice(parser.pos),
